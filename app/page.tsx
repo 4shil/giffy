@@ -1,4 +1,15 @@
+'use client';
+
+import { useState } from 'react';
+import FileUpload from '@/components/FileUpload';
+
 export default function Home() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -11,11 +22,15 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-12 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center">
-        <p className="text-[var(--muted)]">
-          Upload component will go here
-        </p>
-      </div>
+      <FileUpload onFileSelect={handleFileSelect} />
+
+      {selectedFile && (
+        <div className="p-4 bg-green-50 dark:bg-green-950 border border-[var(--success)] rounded-lg">
+          <p className="text-sm text-[var(--success)] font-medium">
+            ✓ {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+          </p>
+        </div>
+      )}
     </div>
   );
 }
