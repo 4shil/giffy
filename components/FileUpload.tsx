@@ -14,15 +14,19 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
 
   const validateFile = (file: File): string | null => {
-    if (file.size > MAX_FILE_SIZE) {
-      return `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`;
+    try {
+      if (file.size > MAX_FILE_SIZE) {
+        return `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`;
+      }
+      
+      if (!ACCEPTED_FORMATS.includes(file.type)) {
+        return 'Unsupported format. Please use MP4, MOV, or WEBM.';
+      }
+      
+      return null;
+    } catch (err) {
+      return 'Failed to validate file. Please try again.';
     }
-    
-    if (!ACCEPTED_FORMATS.includes(file.type)) {
-      return 'Unsupported format. Please use MP4, MOV, or WEBM.';
-    }
-    
-    return null;
   };
 
   const handleFile = useCallback((file: File) => {

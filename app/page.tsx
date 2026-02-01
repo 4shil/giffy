@@ -46,22 +46,45 @@ export default function Home() {
     try {
       const clipDuration = trimEnd - trimStart;
       
+      // Validate clip duration
       if (clipDuration > maxDuration) {
         throw new Error(`Clip duration exceeds ${maxDuration}s limit`);
       }
 
+      if (clipDuration < 0.1) {
+        throw new Error('Clip duration is too short (minimum 0.1s)');
+      }
+
+      // Check memory availability
+      if (typeof performance !== 'undefined' && (performance as any).memory) {
+        const memory = (performance as any).memory;
+        const availableMemory = memory.jsHeapSizeLimit - memory.usedJSHeapSize;
+        if (availableMemory < 100 * 1024 * 1024) {
+          throw new Error('Not enough memory available. Please close other tabs and try again.');
+        }
+      }
+
       const preset = getCompressionPreset(clipDuration);
 
-      // Create new worker
+      // Create new worker with error handling
       workerRef.current = new Worker(
         new URL('../workers/converter.worker.ts', import.meta.url),
         { type: 'module' }
       );
 
+      // Set worker timeout (max 5 minutes)
+      const workerTimeout = setTimeout(() => {
+        setError('Conversion timed out. Please try a shorter video.');
+        setIsConverting(false);
+        workerRef.current?.terminate();
+        workerRef.current = null;
+      }, 5 * 60 * 1000);
+
       workerRef.current.onmessage = (e) => {
         if (e.data.type === 'progress') {
           setProgress(e.data.progress);
         } else if (e.data.type === 'complete') {
+          clearTimeout(workerTimeout);
           const gifBlob = e.data.gifBlob;
           
           // Download GIF
@@ -87,13 +110,15 @@ export default function Home() {
           workerRef.current?.terminate();
           workerRef.current = null;
         } else if (e.data.type === 'error') {
-          throw new Error(e.data.error);
+          clearTimeout(workerTimeout);
+          throw new Error(e.data.error || 'Conversion failed');
         }
       };
 
       workerRef.current.onerror = (err) => {
+        clearTimeout(workerTimeout);
         console.error('Worker error:', err);
-        setError('Conversion failed. Please try again.');
+        setError('Conversion failed. Please try again with a different video.');
         setIsConverting(false);
         workerRef.current?.terminate();
         workerRef.current = null;
