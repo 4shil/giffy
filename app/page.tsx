@@ -1,85 +1,65 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import FileUpload from '@/components/FileUpload';
-import VideoPreview from '@/components/VideoPreview';
-import TrimSlider from '@/components/TrimSlider';
-import ConversionProgress from '@/components/ConversionProgress';
-import { getCompressionPreset, getEstimatedFileSize } from '@/lib/compression';
 import { isFFmpegLoaded } from '@/lib/ffmpeg-preload';
+import { getCompressionPreset } from '@/lib/compression';
+import PreloaderScreen from '@/components/screens/PreloaderScreen';
+import UploadScreen from '@/components/screens/UploadScreen';
+import TrimScreen from '@/components/screens/TrimScreen';
+import ConvertingScreen from '@/components/screens/ConvertingScreen';
+import ResultScreen from '@/components/screens/ResultScreen';
+
+type Screen = 'preloader' | 'upload' | 'trim' | 'converting' | 'result';
 
 const MAX_DURATION_DESKTOP = 60;
 const MAX_DURATION_MOBILE = 30;
 
 export default function Home() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>(
+    isFFmpegLoaded() ? 'upload' : 'preloader'
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [duration, setDuration] = useState<number>(0);
   const [trimStart, setTrimStart] = useState<number>(0);
   const [trimEnd, setTrimEnd] = useState<number>(0);
-  const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [gifBlob, setGifBlob] = useState<Blob | null>(null);
   
   const workerRef = useRef<Worker | null>(null);
   
-  // Detect mobile (simple check)
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const maxDuration = isMobile ? MAX_DURATION_MOBILE : MAX_DURATION_DESKTOP;
 
+  const handlePreloaderComplete = () => {
+    setCurrentScreen('upload');
+  };
+
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
-    setTrimStart(0);
-    setError(null);
-    setProgress(0);
+    setCurrentScreen('trim');
   };
 
-  const handleDurationLoad = (loadedDuration: number) => {
-    setDuration(loadedDuration);
-    setTrimEnd(Math.min(loadedDuration, maxDuration));
-  };
-
-  const handleConvert = async () => {
+  const handleTrimConfirm = async (start: number, end: number) => {
     if (!selectedFile) return;
 
-    setIsConverting(true);
+    setTrimStart(start);
+    setTrimEnd(end);
+    setCurrentScreen('converting');
     setProgress(0);
-    setError(null);
 
     try {
-      const clipDuration = trimEnd - trimStart;
-      
-      // Validate clip duration
-      if (clipDuration > maxDuration) {
-        throw new Error(`Clip duration exceeds ${maxDuration}s limit`);
-      }
-
-      if (clipDuration < 0.1) {
-        throw new Error('Clip duration is too short (minimum 0.1s)');
-      }
-
-      // Check memory availability
-      if (typeof performance !== 'undefined' && (performance as any).memory) {
-        const memory = (performance as any).memory;
-        const availableMemory = memory.jsHeapSizeLimit - memory.usedJSHeapSize;
-        if (availableMemory < 100 * 1024 * 1024) {
-          throw new Error('Not enough memory available. Please close other tabs and try again.');
-        }
-      }
-
+      const clipDuration = end - start;
       const preset = getCompressionPreset(clipDuration);
 
-      // Create new worker with error handling
       workerRef.current = new Worker(
         new URL('../workers/converter.worker.ts', import.meta.url),
         { type: 'module' }
       );
 
-      // Set worker timeout (max 5 minutes)
       const workerTimeout = setTimeout(() => {
-        setError('Conversion timed out. Please try a shorter video.');
-        setIsConverting(false);
         workerRef.current?.terminate();
         workerRef.current = null;
+        setCurrentScreen('upload');
+        alert('Conversion timed out. Please try a shorter video.');
       }, 5 * 60 * 1000);
 
       workerRef.current.onmessage = (e) => {
@@ -87,155 +67,79 @@ export default function Home() {
           setProgress(e.data.progress);
         } else if (e.data.type === 'complete') {
           clearTimeout(workerTimeout);
-          const gifBlob = e.data.gifBlob;
-          
-          // Download GIF
-          const url = URL.createObjectURL(gifBlob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `giffy-${Date.now()}.gif`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-
-          setIsConverting(false);
-          setProgress(100);
-          
-          // Reset after download
-          setTimeout(() => {
-            setSelectedFile(null);
-            setProgress(0);
-          }, 2000);
-
-          // Terminate worker
+          setGifBlob(e.data.gifBlob);
+          setCurrentScreen('result');
           workerRef.current?.terminate();
           workerRef.current = null;
         } else if (e.data.type === 'error') {
           clearTimeout(workerTimeout);
-          throw new Error(e.data.error || 'Conversion failed');
+          workerRef.current?.terminate();
+          workerRef.current = null;
+          setCurrentScreen('upload');
+          alert('Conversion failed: ' + e.data.error);
         }
       };
 
-      workerRef.current.onerror = (err) => {
+      workerRef.current.onerror = () => {
         clearTimeout(workerTimeout);
-        console.error('Worker error:', err);
-        setError('Conversion failed. Please try again with a different video.');
-        setIsConverting(false);
         workerRef.current?.terminate();
         workerRef.current = null;
+        setCurrentScreen('upload');
+        alert('Conversion failed. Please try again.');
       };
 
-      // Send conversion job to worker
       workerRef.current.postMessage({
         videoBlob: selectedFile,
-        trimStart,
-        trimEnd,
+        trimStart: start,
+        trimEnd: end,
         width: preset.maxWidth,
         fps: preset.fps,
-        usePreloaded: isFFmpegLoaded(),
       });
 
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      setIsConverting(false);
-      workerRef.current?.terminate();
-      workerRef.current = null;
+    } catch (err) {
+      setCurrentScreen('upload');
+      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
-  const clipDuration = trimEnd - trimStart;
-  const preset = getCompressionPreset(clipDuration);
-  const estimatedSize = getEstimatedFileSize(clipDuration);
-  const canConvert = selectedFile && clipDuration > 0 && clipDuration <= maxDuration && !isConverting;
+  const handleTrimBack = () => {
+    setSelectedFile(null);
+    setCurrentScreen('upload');
+  };
 
-  return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-          Convert Video to GIF
-        </h2>
-        <p className="text-sm sm:text-base text-[var(--muted)] max-w-2xl mx-auto px-4">
-          Drop a video file below (up to {maxDuration} seconds). 
-          Trim, convert, and download—all in your browser.
-        </p>
-      </div>
+  const handleNewUpload = () => {
+    setSelectedFile(null);
+    setGifBlob(null);
+    setProgress(0);
+    setCurrentScreen('upload');
+  };
 
-      {!selectedFile ? (
-        <FileUpload onFileSelect={handleFileSelect} />
-      ) : (
-        <>
-          <VideoPreview 
-            file={selectedFile} 
-            onDurationLoad={handleDurationLoad}
-            trimStart={trimStart}
-            trimEnd={trimEnd}
-          />
-          
-          <TrimSlider
-            duration={duration}
-            trimStart={trimStart}
-            trimEnd={trimEnd}
-            onTrimStartChange={setTrimStart}
-            onTrimEndChange={setTrimEnd}
-            maxDuration={maxDuration}
-          />
+  if (currentScreen === 'preloader') {
+    return <PreloaderScreen onComplete={handlePreloaderComplete} />;
+  }
 
-          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-            <h3 className="text-sm font-semibold mb-2">Compression Settings (Auto)</h3>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-[var(--muted)]">Max Width</p>
-                <p className="font-mono font-bold">{preset.maxWidth}px</p>
-              </div>
-              <div>
-                <p className="text-[var(--muted)]">Frame Rate</p>
-                <p className="font-mono font-bold">{preset.fps} fps</p>
-              </div>
-              <div>
-                <p className="text-[var(--muted)]">Est. Size</p>
-                <p className="font-mono font-bold">{estimatedSize}</p>
-              </div>
-            </div>
-          </div>
+  if (currentScreen === 'upload') {
+    return <UploadScreen onFileSelect={handleFileSelect} />;
+  }
 
-          <ConversionProgress 
-            progress={progress}
-            isConverting={isConverting}
-            error={error}
-          />
-          
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <button
-              onClick={handleConvert}
-              disabled={!canConvert}
-              className={`
-                px-6 py-3 rounded-lg font-semibold text-white transition-all w-full sm:w-auto
-                ${canConvert 
-                  ? 'bg-[var(--primary)] hover:bg-[var(--primary-hover)] cursor-pointer' 
-                  : 'bg-gray-400 cursor-not-allowed'
-                }
-              `}
-            >
-              {isConverting ? 'Converting...' : 'Convert to GIF'}
-            </button>
-            
-            <button
-              onClick={() => {
-                setSelectedFile(null);
-                setError(null);
-                workerRef.current?.terminate();
-                workerRef.current = null;
-              }}
-              disabled={isConverting}
-              className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
-            >
-              Choose Different File
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  if (currentScreen === 'trim' && selectedFile) {
+    return (
+      <TrimScreen
+        file={selectedFile}
+        onConfirm={handleTrimConfirm}
+        onBack={handleTrimBack}
+        maxDuration={maxDuration}
+      />
+    );
+  }
+
+  if (currentScreen === 'converting') {
+    return <ConvertingScreen progress={progress} />;
+  }
+
+  if (currentScreen === 'result' && gifBlob) {
+    return <ResultScreen gifBlob={gifBlob} onNewUpload={handleNewUpload} />;
+  }
+
+  return <UploadScreen onFileSelect={handleFileSelect} />;
 }
