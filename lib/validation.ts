@@ -86,13 +86,17 @@ export function validateTrimPoints(
 }
 
 export function checkMemoryAvailable(): boolean {
-  if (typeof performance === 'undefined' || !performance.memory) {
+  if (typeof performance === 'undefined') {
     return true; // Assume OK if we can't check
   }
 
-  const memory = (performance as any).memory;
-  const usedMemory = memory.usedJSHeapSize;
-  const totalMemory = memory.jsHeapSizeLimit;
+  const perfMemory = (performance as any).memory;
+  if (!perfMemory) {
+    return true;
+  }
+
+  const usedMemory = perfMemory.usedJSHeapSize;
+  const totalMemory = perfMemory.jsHeapSizeLimit;
   const availableMemory = totalMemory - usedMemory;
 
   // Require at least 100MB free

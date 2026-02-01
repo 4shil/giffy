@@ -115,7 +115,9 @@ async function convertToGif(params: ConversionParams): Promise<Blob> {
     // Clean up virtual FS immediately
     await cleanupFFmpeg();
 
-    return new Blob([data], { type: 'image/gif' });
+    // Convert to regular Uint8Array to avoid SharedArrayBuffer issues
+    const buffer = new Uint8Array(data as Uint8Array);
+    return new Blob([buffer], { type: 'image/gif' });
   } catch (error) {
     // Ensure cleanup even on error
     await cleanupFFmpeg();
