@@ -151,10 +151,10 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2">
           Convert Video to GIF
         </h2>
-        <p className="text-[var(--muted)] max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base text-[var(--muted)] max-w-2xl mx-auto px-4">
           Drop a video file below (up to {maxDuration} seconds). 
           Trim, convert, and download—all in your browser.
         </p>
@@ -204,12 +204,12 @@ export default function Home() {
             error={error}
           />
           
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={handleConvert}
               disabled={!canConvert}
               className={`
-                px-6 py-3 rounded-lg font-semibold text-white transition-all
+                px-6 py-3 rounded-lg font-semibold text-white transition-all w-full sm:w-auto
                 ${canConvert 
                   ? 'bg-[var(--primary)] hover:bg-[var(--primary-hover)] cursor-pointer' 
                   : 'bg-gray-400 cursor-not-allowed'

@@ -75,7 +75,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={`
-          relative rounded-lg border-2 border-dashed p-12 text-center transition-colors
+          relative rounded-lg border-2 border-dashed p-8 sm:p-12 text-center transition-colors
           ${isDragging 
             ? 'border-[var(--primary)] bg-blue-50 dark:bg-blue-950' 
             : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
@@ -93,7 +93,7 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
         
         <div className="pointer-events-none space-y-4">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400"
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"
@@ -108,10 +108,10 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
           </svg>
           
           <div>
-            <p className="text-lg font-semibold">
+            <p className="text-base sm:text-lg font-semibold">
               Drop video here or click to select
             </p>
-            <p className="text-sm text-[var(--muted)] mt-1">
+            <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">
               MP4, MOV, or WEBM • Max 100 MB
             </p>
           </div>
@@ -119,8 +119,8 @@ export default function FileUpload({ onFileSelect }: FileUploadProps) {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-950 border border-[var(--error)] rounded-lg">
-          <p className="text-sm text-[var(--error)] font-medium">
+        <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-950 border border-[var(--error)] rounded-lg">
+          <p className="text-xs sm:text-sm text-[var(--error)] font-medium">
             {error}
           </p>
         </div>
