@@ -3,12 +3,20 @@
 import { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import VideoPreview from '@/components/VideoPreview';
+import TrimSlider from '@/components/TrimSlider';
+
+const MAX_DURATION_DESKTOP = 60;
+const MAX_DURATION_MOBILE = 30;
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [duration, setDuration] = useState<number>(0);
   const [trimStart, setTrimStart] = useState<number>(0);
   const [trimEnd, setTrimEnd] = useState<number>(0);
+  
+  // Detect mobile (simple check)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const maxDuration = isMobile ? MAX_DURATION_MOBILE : MAX_DURATION_DESKTOP;
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -17,7 +25,7 @@ export default function Home() {
 
   const handleDurationLoad = (loadedDuration: number) => {
     setDuration(loadedDuration);
-    setTrimEnd(loadedDuration);
+    setTrimEnd(Math.min(loadedDuration, maxDuration));
   };
 
   return (
@@ -27,7 +35,7 @@ export default function Home() {
           Convert Video to GIF
         </h2>
         <p className="text-[var(--muted)] max-w-2xl mx-auto">
-          Drop a video file below (up to 60 seconds). 
+          Drop a video file below (up to {maxDuration} seconds). 
           Trim, convert, and download—all in your browser.
         </p>
       </div>
@@ -41,6 +49,15 @@ export default function Home() {
             onDurationLoad={handleDurationLoad}
             trimStart={trimStart}
             trimEnd={trimEnd}
+          />
+          
+          <TrimSlider
+            duration={duration}
+            trimStart={trimStart}
+            trimEnd={trimEnd}
+            onTrimStartChange={setTrimStart}
+            onTrimEndChange={setTrimEnd}
+            maxDuration={maxDuration}
           />
           
           <div className="flex gap-4">
