@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  border-color: #27272A;
+}
+
+body {
+  background-color: #FAFAF9;
+  color: #18181B;
+  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F4F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #18181B;
+}
+
+/* Brutal Button */
+.btn-brutal {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid black;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.btn-brutal:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.btn-brutal:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.btn-brutal-primary {
+  background: #6366F1;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: 2px solid black;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.btn-brutal-primary:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.btn-brutal-primary:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.btn-brutal-success {
+  background: #10B981;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: 2px solid black;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.1s;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.btn-brutal-success:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.btn-brutal-success:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+/* Panel */
+.panel-brutal {
+  background: white;
+  border: 2px solid black;
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+/* Icon Button */
+.icon-btn-brutal {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid black;
+  background: white;
+  transition: all 0.1s;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.icon-btn-brutal:hover {
+  background: #F4F4F5;
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.icon-btn-brutal:active {
+  box-shadow: none;
+}
+
+/* Video Preview */
+.video-preview-brutal {
+  background: black;
+  border: 4px solid black;
+  box-shadow: 8px 8px 0px 0px #000000;
+  overflow: hidden;
+}
+
+/* Range Input Neo-Brutal */
+input[type="range"].range-brutal {
+  width: 100%;
+  height: 0.5rem;
+  background: white;
+  border: 2px solid black;
+  appearance: none;
+  cursor: pointer;
+}
+
+input[type="range"].range-brutal::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #6366F1;
+  border: 2px solid black;
+  cursor: grab;
+}
+
+input[type="range"].range-brutal::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+input[type="range"].range-brutal::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #6366F1;
+  border: 2px solid black;
+  cursor: grab;
+}
+
+input[type="range"].range-brutal::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+
+/* No select */
+.no-select {
+  user-select: none;
+}
+
+/* Loading spinner */
+.spin-brutal {
+  animation: spin-brutal 1s linear infinite;
+}
+
+@keyframes spin-brutal {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Safe area for mobile */
+.safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch optimizations */
+@media (hover: none) {
+  .btn-brutal:hover,
+  .btn-brutal-primary:hover,
+  .btn-brutal-success:hover {
+    transform: none;
+    box-shadow: 4px 4px 0px 0px #000000;
+  }
+
+  .btn-brutal:active,
+  .btn-brutal-primary:active,
+  .btn-brutal-success:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px 0px #000000;
+  }
+}
