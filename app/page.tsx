@@ -277,7 +277,7 @@ export default function MobileEditorPage() {
 
   // Main editor
   return (
-    <div className="h-screen w-screen flex flex-col" style={{background: 'var(--bg-main)'}}>
+    <div className="h-screen w-screen flex flex-col safe-area" style={{background: 'var(--bg-main)'}}>
       <canvas ref={canvasRef} className="hidden" />
       
       {/* Video (hidden for thumbnail generation) */}
@@ -287,38 +287,49 @@ export default function MobileEditorPage() {
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         className="hidden"
+        playsInline
+        preload="metadata"
       />
 
       {/* Top Bar */}
-      <div className="h-16 flex items-center justify-between px-4 select-none" style={{background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)'}}>
-        <button onClick={handleNewProject} className="icon-btn" style={{background: 'transparent', color: 'var(--text-primary)'}}>
-          <span className="text-2xl">✕</span>
+      <div className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 select-none flex-shrink-0" style={{background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)'}}>
+        <button 
+          onClick={handleNewProject} 
+          className="icon-btn" 
+          style={{background: 'transparent', color: 'var(--text-primary)', width: '40px', height: '40px'}}
+          aria-label="Close"
+        >
+          <span className="text-xl sm:text-2xl">✕</span>
         </button>
-        <h1 className="text-lg font-semibold">{state === 'complete' ? 'Complete' : 'Edit'}</h1>
+        <h1 className="text-base sm:text-lg font-semibold">{state === 'complete' ? 'Complete' : 'Edit'}</h1>
         <button
           onClick={state === 'complete' ? handleDownload : handleConvert}
           disabled={state === 'editing' && !canConvert}
           className="icon-btn"
           style={{
             background: state === 'complete' ? 'var(--accent-teal)' : canConvert ? 'var(--accent-purple)' : '#ccc',
-            color: 'white'
+            color: 'white',
+            width: '40px',
+            height: '40px'
           }}
+          aria-label={state === 'complete' ? 'Download' : 'Export'}
         >
-          <span className="text-xl">{state === 'complete' ? '⬇' : '✓'}</span>
+          <span className="text-lg sm:text-xl">{state === 'complete' ? '⬇' : '✓'}</span>
         </button>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center px-3 py-2 sm:p-4 overflow-hidden">
+        <div className="w-full max-w-sm sm:max-w-md">
           <div className="video-card animate-slide-up">
             {/* Preview */}
-            <div className="relative" style={{aspectRatio: '9/16', background: '#000'}}>
+            <div className="relative" style={{aspectRatio: '9/16', background: '#000', maxHeight: 'calc(100vh - 240px)'}}>
               {state === 'editing' && videoUrl && (
                 <video
                   src={videoUrl}
                   className="w-full h-full object-contain"
                   onClick={togglePlayPause}
+                  playsInline
                 />
               )}
               
@@ -342,27 +353,27 @@ export default function MobileEditorPage() {
               {/* Floating controls (editing only) */}
               {state === 'editing' && (
                 <>
-                  <div className="absolute top-4 right-4">
-                    <button className="fab" style={{width: '40px', height: '40px'}}>
-                      <span className="text-lg">⚙️</span>
+                  <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
+                    <button className="fab" style={{width: '36px', height: '36px'}} aria-label="Settings">
+                      <span className="text-base sm:text-lg">⚙️</span>
                     </button>
                   </div>
                   
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                    <button onClick={togglePlayPause} className="fab" style={{width: '64px', height: '64px'}}>
-                      <span className="text-3xl">{isPlaying ? '⏸' : '▶'}</span>
+                  <div className="absolute bottom-16 sm:bottom-20 left-1/2 transform -translate-x-1/2">
+                    <button onClick={togglePlayPause} className="fab" style={{width: '56px', height: '56px'}} aria-label={isPlaying ? 'Pause' : 'Play'}>
+                      <span className="text-2xl sm:text-3xl">{isPlaying ? '⏸' : '▶'}</span>
                     </button>
                   </div>
 
-                  <div className="absolute bottom-4 right-4">
-                    <button className="fab" style={{width: '40px', height: '40px'}}>
-                      <span className="text-lg">⛶</span>
+                  <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4">
+                    <button className="fab" style={{width: '36px', height: '36px'}} aria-label="Fullscreen">
+                      <span className="text-base sm:text-lg">⛶</span>
                     </button>
                   </div>
 
                   {/* Time display */}
-                  <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 glass px-4 py-2 rounded-full">
-                    <p className="text-sm text-white font-mono">
+                  <div className="absolute bottom-28 sm:bottom-32 left-1/2 transform -translate-x-1/2 glass px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                    <p className="text-xs sm:text-sm text-white font-mono">
                       {formatTime(currentTime)} / {formatTime(duration)}
                     </p>
                   </div>
@@ -372,7 +383,7 @@ export default function MobileEditorPage() {
 
             {/* Timeline Section */}
             {state === 'editing' && (
-              <div className="p-4 space-y-4" style={{background: 'var(--bg-dark)'}}>
+              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4" style={{background: 'var(--bg-dark)'}}>
                 {/* Timeline markers */}
                 <div className="flex justify-between text-xs" style={{color: 'var(--text-on-dark)'}}>
                   <span>0s</span>
@@ -382,12 +393,13 @@ export default function MobileEditorPage() {
 
                 {/* Thumbnails */}
                 {thumbnails.length > 0 && (
-                  <div className="timeline-thumbnails">
+                  <div className="timeline-thumbnails pb-2">
                     {thumbnails.map((thumb, i) => (
                       <div
                         key={i}
-                        className="timeline-thumb"
+                        className={`timeline-thumb ${Math.abs(currentTime - (duration / thumbnails.length) * i) < 1 ? 'active' : ''}`}
                         onClick={() => seekTo((duration / thumbnails.length) * i)}
+                        style={{minWidth: '52px', height: '52px'}}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={thumb} alt={`Frame ${i}`} />
@@ -397,9 +409,9 @@ export default function MobileEditorPage() {
                 )}
 
                 {/* Trim controls */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-white opacity-60">START</span>
+                <div className="space-y-2.5 sm:space-y-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs text-white opacity-60 w-12 sm:w-auto">START</span>
                     <input
                       type="range"
                       className="custom-range flex-1"
@@ -414,12 +426,13 @@ export default function MobileEditorPage() {
                           seekTo(val);
                         }
                       }}
+                      aria-label="Trim start"
                     />
-                    <span className="text-xs text-white font-mono">{formatTime(trimStart)}</span>
+                    <span className="text-xs text-white font-mono w-12 text-right">{formatTime(trimStart)}</span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-white opacity-60">END</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs text-white opacity-60 w-12 sm:w-auto">END</span>
                     <input
                       type="range"
                       className="custom-range flex-1"
@@ -431,21 +444,22 @@ export default function MobileEditorPage() {
                         const val = parseFloat(e.target.value);
                         if (val > trimStart) setTrimEnd(val);
                       }}
+                      aria-label="Trim end"
                     />
-                    <span className="text-xs text-white font-mono">{formatTime(trimEnd)}</span>
+                    <span className="text-xs text-white font-mono w-12 text-right">{formatTime(trimEnd)}</span>
                   </div>
                 </div>
 
                 {/* Clip info */}
-                <div className="glass-dark px-4 py-3 rounded-xl">
+                <div className="glass-dark px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm" style={{color: 'var(--text-on-dark)'}}>Clip Duration</span>
-                    <span className={`text-lg font-semibold ${canConvert ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className="text-xs sm:text-sm" style={{color: 'var(--text-on-dark)'}}>Clip Duration</span>
+                    <span className={`text-base sm:text-lg font-semibold ${canConvert ? 'text-green-400' : 'text-red-400'}`}>
                       {formatTime(clipDuration)}
                     </span>
                   </div>
                   {!canConvert && (
-                    <p className="text-xs text-red-400 mt-2">
+                    <p className="text-xs text-red-400 mt-1.5 sm:mt-2">
                       ⚠️ Max {maxDuration}s allowed
                     </p>
                   )}
@@ -455,10 +469,10 @@ export default function MobileEditorPage() {
 
             {/* Complete state footer */}
             {state === 'complete' && gifBlob && (
-              <div className="p-4" style={{background: 'var(--bg-dark)'}}>
-                <div className="glass-dark px-4 py-3 rounded-xl text-center">
-                  <p className="text-sm text-white opacity-80">File Size</p>
-                  <p className="text-2xl font-bold text-white mt-1">
+              <div className="p-3 sm:p-4" style={{background: 'var(--bg-dark)'}}>
+                <div className="glass-dark px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl text-center">
+                  <p className="text-xs sm:text-sm text-white opacity-80">File Size</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white mt-1">
                     {(gifBlob.size / (1024 * 1024)).toFixed(2)} MB
                   </p>
                 </div>
@@ -470,24 +484,24 @@ export default function MobileEditorPage() {
 
       {/* Bottom Toolbar */}
       {state === 'editing' && (
-        <div className="toolbar h-20 flex items-center justify-around px-4">
-          <button className="icon-btn">
-            <span className="text-2xl">✂️</span>
+        <div className="toolbar h-16 sm:h-20 flex items-center justify-around px-3 sm:px-4 flex-shrink-0">
+          <button className="icon-btn" aria-label="Trim">
+            <span className="text-xl sm:text-2xl">✂️</span>
           </button>
-          <button className="icon-btn">
-            <span className="text-2xl">🎨</span>
+          <button className="icon-btn" aria-label="Filters">
+            <span className="text-xl sm:text-2xl">🎨</span>
           </button>
-          <button className="icon-btn">
-            <span className="text-2xl">🔊</span>
+          <button className="icon-btn" aria-label="Audio">
+            <span className="text-xl sm:text-2xl">🔊</span>
           </button>
-          <button className="icon-btn">
-            <span className="text-2xl">⚡</span>
+          <button className="icon-btn" aria-label="Speed">
+            <span className="text-xl sm:text-2xl">⚡</span>
           </button>
-          <button className="icon-btn">
-            <span className="text-2xl">📋</span>
+          <button className="icon-btn" aria-label="Copy">
+            <span className="text-xl sm:text-2xl">📋</span>
           </button>
-          <button className="icon-btn" onClick={handleNewProject}>
-            <span className="text-2xl">🗑️</span>
+          <button className="icon-btn" onClick={handleNewProject} aria-label="Delete">
+            <span className="text-xl sm:text-2xl">🗑️</span>
           </button>
         </div>
       )}

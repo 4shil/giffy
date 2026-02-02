@@ -33,6 +33,14 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area for mobile notches */
+.safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 h1, h2, h3 {
@@ -42,16 +50,28 @@ h1, h2, h3 {
 /* Mobile-first card design */
 .video-card {
   background: var(--bg-card);
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
 }
 
+@media (min-width: 640px) {
+  .video-card {
+    border-radius: 24px;
+  }
+}
+
 .video-preview {
   background: #000;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
   position: relative;
+}
+
+@media (min-width: 640px) {
+  .video-preview {
+    border-radius: 20px;
+  }
 }
 
 /* Floating action buttons */
@@ -70,21 +90,18 @@ h1, h2, h3 {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.fab:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .fab:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
 /* Icon buttons */
 .icon-btn {
-  width: 44px;
-  height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -95,23 +112,34 @@ h1, h2, h3 {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.icon-btn:hover {
+.icon-btn:active {
   background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
 .icon-btn.active {
   background: rgba(255, 255, 255, 0.3);
 }
 
+@media (min-width: 640px) {
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* Timeline thumbnails */
 .timeline-thumbnails {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   overflow-x: auto;
   padding: 8px 0;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .timeline-thumbnails::-webkit-scrollbar {
@@ -119,18 +147,20 @@ h1, h2, h3 {
 }
 
 .timeline-thumb {
-  min-width: 56px;
-  height: 56px;
+  min-width: 52px;
+  height: 52px;
   border-radius: 8px;
   overflow: hidden;
   background: #2c2c2e;
   cursor: pointer;
   transition: all 0.2s;
   border: 2px solid transparent;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.timeline-thumb:hover {
-  transform: scale(1.05);
+.timeline-thumb:active {
+  transform: scale(0.95);
 }
 
 .timeline-thumb.active {
@@ -142,6 +172,18 @@ h1, h2, h3 {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .timeline-thumbnails {
+    gap: 4px;
+  }
+  
+  .timeline-thumb {
+    min-width: 56px;
+    height: 56px;
+  }
 }
 
 /* Custom range slider */
