@@ -11,6 +11,9 @@ export default function VideoEditor() {
   // State
   const [state, setState] = useState<AppState>('loading');
   const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingStage, setLoadingStage] = useState('Initializing');
+  const [bytesLoaded, setBytesLoaded] = useState(0);
+  const [totalBytes, setTotalBytes] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [duration, setDuration] = useState<number>(0);
@@ -36,6 +39,9 @@ export default function VideoEditor() {
 
   const loadFFmpeg = async () => {
     try {
+      setLoadingStage('Initializing video processor');
+      setLoadProgress(5);
+
       const ffmpeg = new FFmpeg();
       ffmpegRef.current = ffmpeg;
 
@@ -51,15 +57,55 @@ export default function VideoEditor() {
 
       const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
       
+      // Approximate file sizes
+      const CORE_JS_SIZE = 1.2 * 1024 * 1024; // ~1.2 MB
+      const WASM_SIZE = 31.8 * 1024 * 1024;   // ~31.8 MB
+      const TOTAL_SIZE = CORE_JS_SIZE + WASM_SIZE;
+      
+      setTotalBytes(TOTAL_SIZE);
+      setLoadingStage('Downloading core JavaScript');
+      setLoadProgress(10);
+      
+      // Download core JS
+      const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+      setBytesLoaded(CORE_JS_SIZE);
+      setLoadProgress(15);
+      
+      setLoadingStage('Downloading WebAssembly module');
+      
+      // Simulate WASM download progress
+      const wasmDownloadInterval = setInterval(() => {
+        setBytesLoaded(prev => {
+          const next = prev + (WASM_SIZE / 40); // Increment in 40 steps
+          if (next >= TOTAL_SIZE) {
+            clearInterval(wasmDownloadInterval);
+            return TOTAL_SIZE;
+          }
+          const progress = Math.round((next / TOTAL_SIZE) * 70) + 15; // 15-85%
+          setLoadProgress(progress);
+          return next;
+        });
+      }, 100);
+      
+      const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+      
+      clearInterval(wasmDownloadInterval);
+      setBytesLoaded(TOTAL_SIZE);
+      setLoadProgress(85);
+      
+      setLoadingStage('Loading processor');
       await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        coreURL,
+        wasmURL,
       });
 
+      setLoadingStage('Ready');
       setLoadProgress(100);
-      setTimeout(() => setState('empty'), 300);
+      
+      setTimeout(() => setState('empty'), 500);
     } catch (error) {
       console.error('Failed to load video processor:', error);
+      setLoadingStage('Failed to load');
       alert('Failed to initialize. Please refresh the page.');
     }
   };
@@ -199,6 +245,14 @@ export default function VideoEditor() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const clipDuration = trimEnd - trimStart;
   const canExport = clipDuration > 0 && clipDuration <= 60;
 
@@ -206,25 +260,58 @@ export default function VideoEditor() {
   if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #FAFAF9 0%, #F5F5F4 100%)' }}>
-        <div className="card card-elevated p-8 max-w-md w-full text-center space-y-6">
-          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#D97757] to-[#E9A87E] rounded-2xl flex items-center justify-center">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+        <div className="card card-elevated p-8 sm:p-10 max-w-lg w-full space-y-6">
+          {/* Icon with animated gradient */}
+          <div className="relative w-20 h-20 mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#D97757] to-[#E9A87E] rounded-2xl opacity-20 blur-xl"></div>
+            <div className="relative w-20 h-20 bg-gradient-to-br from-[#D97757] to-[#E9A87E] rounded-2xl flex items-center justify-center">
+              <svg className="w-10 h-10 text-white spinner" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
           </div>
           
-          <div>
-            <h1 className="text-2xl font-semibold mb-2">Giffy</h1>
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-semibold">Giffy</h1>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Initializing video processor
+              {loadingStage}
             </p>
           </div>
           
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${loadProgress}%` }}></div>
+          {/* Progress bar with gradient */}
+          <div>
+            <div className="progress-bar" style={{ height: '10px' }}>
+              <div 
+                className="progress-fill" 
+                style={{ 
+                  width: `${loadProgress}%`,
+                  transition: 'width 0.3s ease'
+                }}
+              ></div>
+            </div>
+            
+            {/* Stats row */}
+            <div className="flex items-center justify-between mt-3 text-sm">
+              <span className="font-medium">{loadProgress}%</span>
+              {totalBytes > 0 && (
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {formatBytes(bytesLoaded)} / {formatBytes(totalBytes)}
+                </span>
+              )}
+            </div>
           </div>
           
-          <p className="text-sm font-medium">{loadProgress}%</p>
+          {/* Stage indicator */}
+          <div className="card p-3 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#D97757] pulse"></div>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {loadProgress < 15 ? 'Preparing core files' : 
+                 loadProgress < 85 ? 'Downloading video processor' : 
+                 loadProgress < 100 ? 'Initializing' : 'Complete'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     );
