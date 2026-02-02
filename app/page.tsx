@@ -28,6 +28,7 @@ export default function Home() {
   
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const maxDuration = isMobile ? MAX_DURATION_MOBILE : MAX_DURATION_DESKTOP;
+  const clipDuration = trimEnd - trimStart;
 
   const handlePreloaderComplete = () => {
     setCurrentScreen('upload');
@@ -47,8 +48,8 @@ export default function Home() {
     setProgress(0);
 
     try {
-      const clipDuration = end - start;
-      const preset = getCompressionPreset(clipDuration);
+      const duration = end - start;
+      const preset = getCompressionPreset(duration);
 
       workerRef.current = new Worker(
         new URL('../workers/converter.worker.ts', import.meta.url),
@@ -85,7 +86,7 @@ export default function Home() {
         workerRef.current?.terminate();
         workerRef.current = null;
         setCurrentScreen('upload');
-        alert('Conversion failed. Please try again.');
+        alert('Conversion failed. Please try again with a different video.');
       };
 
       workerRef.current.postMessage({
@@ -107,10 +108,19 @@ export default function Home() {
     setCurrentScreen('upload');
   };
 
+  const handleConvertingCancel = () => {
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    setProgress(0);
+    setCurrentScreen('trim');
+  };
+
   const handleNewUpload = () => {
     setSelectedFile(null);
     setGifBlob(null);
     setProgress(0);
+    setTrimStart(0);
+    setTrimEnd(0);
     setCurrentScreen('upload');
   };
 
@@ -134,7 +144,13 @@ export default function Home() {
   }
 
   if (currentScreen === 'converting') {
-    return <ConvertingScreen progress={progress} />;
+    return (
+      <ConvertingScreen 
+        progress={progress} 
+        clipDuration={clipDuration}
+        onCancel={handleConvertingCancel}
+      />
+    );
   }
 
   if (currentScreen === 'result' && gifBlob) {

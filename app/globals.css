@@ -19,9 +19,15 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 600;
+  font-weight: 400; /* Fixed: was 600, too heavy */
 }
 
+/* Typography emphasis */
+h1, h2, h3, button {
+  font-weight: 900;
+}
+
+/* Neo-brutalism shadows */
 .neo-shadow {
   box-shadow: 4px 4px 0px 0px #000000;
 }
@@ -32,4 +38,70 @@ body {
 
 .neo-shadow-lg {
   box-shadow: 8px 8px 0px 0px #000000;
+}
+
+/* Focus states for accessibility */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 4px solid #84cc16;
+  outline-offset: 2px;
+}
+
+/* Range slider improvements for mobile */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px; /* Larger tap target */
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+input[type="range"]::-webkit-slider-track {
+  width: 100%;
+  height: 8px;
+  background: #d1d5db;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  background: #84cc16;
+  border: 3px solid #000;
+  border-radius: 0;
+  cursor: grab;
+  margin-top: -14px; /* Center on track */
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  background: #65a30d;
+}
+
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  background: #d1d5db;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+  background: #84cc16;
+  border: 3px solid #000;
+  border-radius: 0;
+  cursor: grab;
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  cursor: grabbing;
+  background: #65a30d;
 }

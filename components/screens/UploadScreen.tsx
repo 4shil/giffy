@@ -16,16 +16,16 @@ export default function UploadScreen({ onFileSelect }: UploadScreenProps) {
   const validateFile = (file: File): string | null => {
     try {
       if (file.size > MAX_FILE_SIZE) {
-        return `FILE TOO LARGE (MAX 100 MB)`;
+        return `File too large (max 100 MB)`;
       }
       
       if (!ACCEPTED_FORMATS.includes(file.type)) {
-        return 'UNSUPPORTED FORMAT';
+        return 'Unsupported format. Use MP4, MOV, or WEBM.';
       }
       
       return null;
     } catch (err) {
-      return 'VALIDATION FAILED';
+      return 'Could not read file. Please try again.';
     }
   };
 
@@ -34,6 +34,7 @@ export default function UploadScreen({ onFileSelect }: UploadScreenProps) {
     
     if (validationError) {
       setError(validationError);
+      setTimeout(() => setError(null), 4000); // Auto-dismiss after 4s
       return;
     }
     
@@ -69,18 +70,15 @@ export default function UploadScreen({ onFileSelect }: UploadScreenProps) {
   }, [handleFile]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-6">
-      <div className="w-full max-w-2xl space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4 sm:p-6">
+      <div className="w-full max-w-2xl space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <div className="inline-block bg-lime-500 px-4 py-2 border-4 border-black neo-shadow-sm">
-            <h1 className="text-4xl sm:text-5xl font-black uppercase">
-              UPLOAD VIDEO
+            <h1 className="text-3xl sm:text-4xl font-black uppercase">
+              SELECT VIDEO
             </h1>
           </div>
-          <p className="text-lg font-bold text-gray-700">
-            MP4, MOV, or WEBM • Max 100 MB • Up to 60 seconds
-          </p>
         </div>
 
         {/* Upload Zone */}
@@ -89,12 +87,12 @@ export default function UploadScreen({ onFileSelect }: UploadScreenProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={`
-            relative border-8 p-16 text-center transition-all cursor-pointer
+            relative border-4 sm:border-8 p-8 sm:p-12 text-center transition-all cursor-pointer
             ${isDragging 
               ? 'border-lime-500 bg-lime-50' 
               : 'border-black bg-white hover:bg-gray-50'
             }
-            ${error ? 'border-red-600' : ''}
+            ${error ? 'border-red-600 animate-pulse' : ''}
             neo-shadow-lg
           `}
         >
@@ -108,32 +106,39 @@ export default function UploadScreen({ onFileSelect }: UploadScreenProps) {
             tabIndex={0}
           />
           
-          <div className="pointer-events-none space-y-6">
-            <div className="text-8xl">📹</div>
+          <div className="pointer-events-none space-y-4">
+            <div className="text-6xl sm:text-8xl">📹</div>
             
             <div className="space-y-2">
-              <p className="text-2xl font-black uppercase">
+              <p className="text-xl sm:text-2xl font-black uppercase">
                 DROP VIDEO HERE
               </p>
-              <p className="text-lg font-bold text-gray-600">
-                or click to browse
+              <p className="text-sm sm:text-base text-gray-600 font-semibold">
+                or click to browse files
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <p className="text-sm font-semibold text-gray-700">
+                MP4, MOV, or WEBM • Max 100 MB • Under 60 seconds
               </p>
             </div>
           </div>
         </div>
 
+        {/* Error Message */}
         {error && (
-          <div className="p-4 bg-red-600 border-4 border-black neo-shadow text-white text-center">
-            <p className="text-lg font-black uppercase">
-              ⚠ {error}
+          <div className="p-4 bg-red-600 border-4 border-black neo-shadow text-white text-center animate-pulse">
+            <p className="text-base sm:text-lg font-black">
+              ⚠️ {error}
             </p>
           </div>
         )}
 
-        {/* Info */}
+        {/* Privacy Notice */}
         <div className="text-center">
-          <p className="text-sm font-bold text-gray-600">
-            Everything runs in your browser • No files uploaded
+          <p className="text-sm font-semibold text-gray-600">
+            🔒 Everything runs in your browser • No files uploaded • 100% private
           </p>
         </div>
       </div>
