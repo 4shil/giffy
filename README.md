@@ -1,68 +1,80 @@
-# Giffy - Instant Video to GIF Converter
+# Giffy API
 
-Convert videos up to 60 seconds into GIFs instantly. No upload, no tracking, fully browser-based.
+Backend API for converting videos to GIFs using FFmpeg.
 
-## Features
+## API Endpoints
 
-- **Drag & Drop Upload** - Simple file selection
-- **Video Trimming** - Precise start/end control
-- **Adaptive Compression** - Auto-optimized based on duration
-- **Progress Tracking** - Real-time conversion updates
-- **Privacy First** - Everything runs in your browser
-- **No Server Processing** - Files never leave your device
-- **Mobile Optimized** - Works on all screen sizes
-- **Accessible** - Full keyboard navigation and ARIA labels
+### Health Check
+```
+GET /health
+```
 
-## Tech Stack
+### Convert Video to GIF
+```
+POST /api/convert
+Content-Type: multipart/form-data
 
-- **Next.js 15** - React framework
-- **FFmpeg.wasm** - In-browser video processing
-- **Web Workers** - Non-blocking conversion
-- **Tailwind CSS** - Responsive styling
-- **TypeScript** - Type safety
+Fields:
+- video: video file (required)
+- trimStart: start time in seconds (optional)
+- trimEnd: end time in seconds (optional)
+- width: output width in pixels (default: 480)
+- fps: frames per second (default: 15)
 
-## Compression Presets
+Returns: GIF file download
+```
 
-| Duration | Max Width | FPS |
-|----------|-----------|-----|
-| 0-10s    | 720px     | 15  |
-| 10-30s   | 480px     | 12  |
-| 30-60s   | 360px     | 10  |
+### Get Video Info
+```
+POST /api/info
+Content-Type: multipart/form-data
 
-## Development
+Fields:
+- video: video file (required)
+
+Returns: JSON with duration, width, height, fps, size
+```
+
+## Installation
 
 ```bash
 npm install
-npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-## Build
+## Usage
 
 ```bash
-npm run build
+# Development
+npm run dev
+
+# Production
 npm start
 ```
 
-## Deploy
+## Environment Variables
 
-Giffy is a static Next.js app. Deploy to Vercel, Netlify, or any static hosting.
+```
+PORT=3000  # Server port (default: 3000)
+```
 
-### Vercel (Recommended)
+## Requirements
 
-1. Push to GitHub
-2. Import to Vercel
-3. Deploy
+- Node.js ≥18
+- FFmpeg installed on system
 
-The app requires these headers for SharedArrayBuffer (configured in `next.config.ts`):
-- `Cross-Origin-Embedder-Policy: require-corp`
-- `Cross-Origin-Opener-Policy: same-origin`
+## Example cURL
 
-## License
+```bash
+# Convert video
+curl -X POST http://localhost:3000/api/convert \
+  -F "video=@video.mp4" \
+  -F "trimStart=0" \
+  -F "trimEnd=10" \
+  -F "width=480" \
+  -F "fps=15" \
+  --output output.gif
 
-MIT
-
-## Credits
-
-Built with FFmpeg.wasm
+# Get video info
+curl -X POST http://localhost:3000/api/info \
+  -F "video=@video.mp4"
+```
