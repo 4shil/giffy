@@ -69,38 +69,31 @@ export default function VideoEditor() {
       // Download core JS
       const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
       setBytesLoaded(CORE_JS_SIZE);
-      setLoadProgress(15);
+      setLoadProgress(Math.round((CORE_JS_SIZE / TOTAL_SIZE) * 100));
       
       setLoadingStage('Downloading WebAssembly module');
       
       // Simulate WASM download progress
+      let downloadedBytes = CORE_JS_SIZE;
       const wasmDownloadInterval = setInterval(() => {
-        setBytesLoaded(prev => {
-          const next = prev + (WASM_SIZE / 40); // Increment in 40 steps
-          if (next >= TOTAL_SIZE) {
-            clearInterval(wasmDownloadInterval);
-            return TOTAL_SIZE;
-          }
-          const progress = Math.round((next / TOTAL_SIZE) * 70) + 15; // 15-85%
-          setLoadProgress(progress);
-          return next;
-        });
+        downloadedBytes += (WASM_SIZE / 40); // Increment in 40 steps
+        
+        if (downloadedBytes >= TOTAL_SIZE) {
+          downloadedBytes = TOTAL_SIZE;
+          clearInterval(wasmDownloadInterval);
+        }
+        
+        setBytesLoaded(downloadedBytes);
+        setLoadProgress(Math.round((downloadedBytes / TOTAL_SIZE) * 100));
       }, 100);
       
       const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
       
       clearInterval(wasmDownloadInterval);
       setBytesLoaded(TOTAL_SIZE);
-      setLoadProgress(85);
-      
-      setLoadingStage('Loading processor');
-      await ffmpeg.load({
-        coreURL,
-        wasmURL,
-      });
-
-      setLoadingStage('Ready');
       setLoadProgress(100);
+      
+      setLoadingStage('Ready');
       
       setTimeout(() => setState('empty'), 500);
     } catch (error) {
@@ -306,9 +299,9 @@ export default function VideoEditor() {
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#D97757] pulse"></div>
               <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                {loadProgress < 15 ? 'Preparing core files' : 
-                 loadProgress < 85 ? 'Downloading video processor' : 
-                 loadProgress < 100 ? 'Initializing' : 'Complete'}
+                {loadProgress < 5 ? 'Preparing core files' : 
+                 loadProgress < 100 ? 'Downloading video processor' : 
+                 'Complete'}
               </span>
             </div>
           </div>
