@@ -529,3 +529,40 @@ input[type="range"]::-moz-range-thumb {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .grid-cols-3 { 
+    grid-template-columns: 1fr; 
+  }
+  
+  /* Larger touch targets on mobile */
+  .btn {
+    min-height: 48px;
+    padding: 14px 24px;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  
+  /* Quality selector stacks on mobile */
+  .quality-radio-group {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Reduce text sizes slightly */
+  .text-display {
+    font-size: 48px;
+  }
+  
+  .text-h1 {
+    font-size: 32px;
+  }
+}

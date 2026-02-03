@@ -89,6 +89,23 @@ const ChevronUpIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+);
+
+const ShareIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="18" cy="5" r="3"></circle>
+    <circle cx="6" cy="12" r="3"></circle>
+    <circle cx="18" cy="19" r="3"></circle>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+  </svg>
+);
+
 const FilmIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
@@ -116,6 +133,9 @@ export default function Giffy() {
   const [gifBlob, setGifBlob] = useState<Blob | null>(null);
   const [gifUrl, setGifUrl] = useState('');
   const [quality, setQuality] = useState<Quality>('medium');
+  const [processingStartTime, setProcessingStartTime] = useState<number>(0);
+  const [estimatedFrames, setEstimatedFrames] = useState<number>(0);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const ffmpegRef = useRef<FFmpeg | null>(null);
@@ -123,6 +143,48 @@ export default function Giffy() {
   const dropZoneRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => { initFFmpeg(); }, []);
+  
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (state !== 'editing') return;
+    
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return; // Don't trigger on input fields
+      
+      switch(e.key) {
+        case ' ':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          seekTo(Math.max(0, currentTime - 1));
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          seekTo(Math.min(duration, currentTime + 1));
+          break;
+        case 'Home':
+          e.preventDefault();
+          seekTo(trimStart);
+          break;
+        case 'End':
+          e.preventDefault();
+          seekTo(trimEnd);
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [state, currentTime, duration, trimStart, trimEnd]);
+  
+  // Auto-snap playhead to trim start when trimStart changes
+  useEffect(() => {
+    if (!isPlaying && videoRef.current && state === 'editing') {
+      videoRef.current.currentTime = trimStart;
+    }
+  }, [trimStart, isPlaying, state]);
   
   const initFFmpeg = async () => {
     try {
@@ -225,13 +287,16 @@ export default function Giffy() {
     
     setState('processing');
     setConversionProgress(0);
+    setProcessingStartTime(Date.now());
+    
+    const clipDuration = trimEnd - trimStart;
+    const settings = getQualitySettings(quality);
+    const totalFrames = Math.ceil(clipDuration * settings.fps);
+    setEstimatedFrames(totalFrames);
     
     try {
       const ffmpeg = ffmpegRef.current;
       await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
-      
-      const clipDuration = trimEnd - trimStart;
-      const settings = getQualitySettings(quality);
       
       // Use gifsicle-style optimization with lossy compression
       await ffmpeg.exec([
@@ -266,6 +331,44 @@ export default function Giffy() {
     a.href = gifUrl;
     a.download = `giffy-${quality}-${Date.now()}.gif`;
     a.click();
+  };
+  
+  const handleCopy = async () => {
+    if (!gifBlob) return;
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/gif': gifBlob })
+        ]);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } else {
+        // Fallback: just show message to save and share manually
+        alert('Copy not supported on this browser. Use Download button instead.');
+      }
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Copy failed. Use Download button instead.');
+    }
+  };
+  
+  const handleShare = async () => {
+    if (!gifBlob) return;
+    try {
+      const file = new File([gifBlob], `giffy-${quality}-${Date.now()}.gif`, { type: 'image/gif' });
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'My GIF from Giffy',
+          text: 'Check out this GIF I made!'
+        });
+      } else {
+        alert('Share not supported on this browser. Use Download button instead.');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
   };
   
   const handleReset = () => {
@@ -465,6 +568,11 @@ export default function Giffy() {
                         <SkipForwardIcon />
                       </button>
                     </div>
+                    
+                    {/* Keyboard Shortcuts Hint */}
+                    <p style={{ textAlign: 'center', fontSize: 'var(--font-small)', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-base)', fontWeight: 600 }}>
+                      ⌨️ SHORTCUTS: Space = Play/Pause • ← → = Seek • Home/End = Jump to start/end
+                    </p>
                     
                     <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
                     
@@ -675,13 +783,41 @@ export default function Giffy() {
                   </div>
                 </div>
                 <h2 className="text-h1 text-bold mb-3">CREATING YOUR GIF</h2>
-                <p className="text-body mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                  QUALITY: {quality.toUpperCase()}
-                </p>
+                
+                {/* Processing Details */}
+                <div className="card" style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-base)', background: 'rgba(255,255,255,0.5)' }}>
+                  <div className="grid grid-cols-3 gap-base text-center">
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>QUALITY</p>
+                      <p className="text-bold">{quality.toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>RESOLUTION</p>
+                      <p className="text-bold">{currentSettings.width}p • {currentSettings.fps}fps</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>EST. SIZE</p>
+                      <p className="text-bold">~{formatBytes(estimatedSize)}</p>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="progress mb-4">
                   <div className="progress-fill" style={{ width: `${conversionProgress}%` }}></div>
                 </div>
-                <p className="text-display text-bold">{conversionProgress}%</p>
+                <p className="text-display text-bold mb-3">{conversionProgress}%</p>
+                
+                {/* Frame progress and time estimate */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-small)', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
+                  <span>Frame ~{Math.floor(estimatedFrames * conversionProgress / 100)} / {estimatedFrames}</span>
+                  <span>
+                    {processingStartTime > 0 && conversionProgress > 5 ? (
+                      `~${Math.ceil(((Date.now() - processingStartTime) / conversionProgress) * (100 - conversionProgress) / 1000)}s remaining`
+                    ) : (
+                      'Calculating...'
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -693,7 +829,7 @@ export default function Giffy() {
                 <div className="text-center mb-6">
                   <div className="badge-success flex items-center gap-xs mx-auto" style={{ display: 'inline-flex', marginBottom: 'var(--space-base)', padding: '6px 12px', fontSize: '12px' }}>
                     <CheckIcon />
-                    READY TO DOWNLOAD
+                    READY TO SHARE
                   </div>
                   <h2 className="text-h1 text-gradient">YOUR GIF IS READY</h2>
                 </div>
@@ -717,16 +853,45 @@ export default function Giffy() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-base">
-                  <button onClick={handleDownload} className="btn-primary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
+                {/* Primary Actions - Copy, Download, Share */}
+                <div className="grid gap-base mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+                  <button 
+                    onClick={handleCopy} 
+                    className={copySuccess ? "btn-secondary flex items-center gap-sm justify-center" : "btn-primary flex items-center gap-sm justify-center"}
+                    style={{ padding: '14px 20px', fontSize: '14px' }}
+                  >
+                    {copySuccess ? (
+                      <>
+                        <CheckIcon />
+                        COPIED!
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon />
+                        COPY
+                      </>
+                    )}
+                  </button>
+                  <button onClick={handleDownload} className="btn-secondary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
                     <DownloadIcon />
                     DOWNLOAD
                   </button>
-                  <button onClick={handleReset} className="btn-secondary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
-                    <PlusIcon />
-                    NEW GIF
+                  <button onClick={handleShare} className="btn-secondary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
+                    <ShareIcon />
+                    SHARE
                   </button>
                 </div>
+                
+                {/* Secondary Action - New GIF */}
+                <button onClick={handleReset} className="btn-accent w-full flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
+                  <PlusIcon />
+                  CREATE ANOTHER GIF
+                </button>
+                
+                {/* Help Text */}
+                <p style={{ marginTop: 'var(--space-base)', fontSize: 'var(--font-small)', textAlign: 'center', color: 'var(--color-text-tertiary)', fontWeight: 600 }}>
+                  💡 TIP: Copy to paste directly in Discord, Telegram, or WhatsApp
+                </p>
               </div>
             </div>
           )}
