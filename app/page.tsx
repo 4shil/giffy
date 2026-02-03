@@ -83,12 +83,6 @@ const CheckIcon = () => (
   </svg>
 );
 
-const ChevronUpIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="18 15 12 9 6 15"></polyline>
-  </svg>
-);
-
 const CopyIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>

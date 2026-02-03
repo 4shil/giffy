@@ -162,13 +162,6 @@ h1, h2, h3 {
   box-shadow: var(--shadow-brutal-lg);
 }
 
-.btn-icon {
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border-radius: 12px;
-}
-
 /* Cards - Brutalist with soft interior */
 .card {
   background: var(--color-surface);
@@ -177,11 +170,6 @@ h1, h2, h3 {
   padding: var(--space-xl);
   position: relative;
   transition: all var(--duration-base) var(--ease-smooth);
-}
-
-.card-hover:hover {
-  transform: translate(4px, 4px);
-  box-shadow: var(--shadow-brutal-sm);
 }
 
 .card-glow-pink {
@@ -216,10 +204,6 @@ h1, h2, h3 {
 .badge-error {
   background: var(--color-primary);
   color: white;
-}
-
-.badge-info {
-  background: var(--color-secondary);
 }
 
 /* Progress Bar - Chunky brutalist */
@@ -380,10 +364,6 @@ input[type="range"]::-moz-range-thumb {
   border: var(--border-thick) solid var(--color-border);
   box-shadow: var(--shadow-brutal-lg);
   position: relative;
-}
-
-.icon-box-secondary {
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-purple));
 }
 
 .icon-box-accent {
