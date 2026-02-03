@@ -204,9 +204,9 @@ export default function Giffy() {
   
   const getQualitySettings = (quality: Quality) => {
     const settings = {
-      low: { width: 320, fps: 10, colors: 128 },
-      medium: { width: 480, fps: 15, colors: 256 },
-      high: { width: 720, fps: 20, colors: 256 },
+      low: { width: 280, fps: 8, colors: 64 },
+      medium: { width: 400, fps: 12, colors: 128 },
+      high: { width: 560, fps: 15, colors: 256 },
     };
     return settings[quality];
   };
@@ -224,11 +224,12 @@ export default function Giffy() {
       const clipDuration = trimEnd - trimStart;
       const settings = getQualitySettings(quality);
       
+      // Use gifsicle-style optimization with lossy compression
       await ffmpeg.exec([
         '-ss', trimStart.toString(),
         '-t', clipDuration.toString(),
         '-i', 'input.mp4',
-        '-vf', `fps=${settings.fps},scale=${settings.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=${settings.colors}[p];[s1][p]paletteuse=dither=bayer`,
+        '-vf', `fps=${settings.fps},scale=${settings.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=${settings.colors}:stats_mode=single[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle`,
         '-loop', '0',
         'output.gif'
       ]);
