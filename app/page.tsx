@@ -83,6 +83,12 @@ const CheckIcon = () => (
   </svg>
 );
 
+const ChevronUpIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15"></polyline>
+  </svg>
+);
+
 const FilmIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
@@ -110,8 +116,7 @@ export default function Giffy() {
   const [gifBlob, setGifBlob] = useState<Blob | null>(null);
   const [gifUrl, setGifUrl] = useState('');
   const [quality, setQuality] = useState<Quality>('medium');
-  const [videoWidth, setVideoWidth] = useState(0);
-  const [videoHeight, setVideoHeight] = useState(0);
+  const [showQualityDropdown, setShowQualityDropdown] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const ffmpegRef = useRef<FFmpeg | null>(null);
@@ -179,8 +184,6 @@ export default function Giffy() {
       const dur = videoRef.current.duration;
       setDuration(dur);
       setTrimEnd(Math.min(dur, 10));
-      setVideoWidth(videoRef.current.videoWidth);
-      setVideoHeight(videoRef.current.videoHeight);
       setState('editing');
     }
   };
@@ -199,27 +202,13 @@ export default function Giffy() {
     if (videoRef.current) videoRef.current.currentTime = time;
   };
   
-  // Calculate expected file size based on quality and video dimensions
-  const getQualitySettings = (quality: Quality, clipDuration: number) => {
+  const getQualitySettings = (quality: Quality) => {
     const settings = {
       low: { width: 320, fps: 10, colors: 128 },
       medium: { width: 480, fps: 15, colors: 256 },
       high: { width: 720, fps: 20, colors: 256 },
     };
-    
-    const s = settings[quality];
-    
-    // Estimate file size: width * height * fps * duration * colors / compression_ratio
-    // Compression ratio roughly 10-15 for GIF
-    const aspectRatio = videoHeight > 0 ? videoWidth / videoHeight : 16/9;
-    const height = Math.round(s.width / aspectRatio);
-    const estimatedSize = (s.width * height * s.fps * clipDuration * s.colors) / 12;
-    
-    return {
-      ...s,
-      estimatedSize,
-      height,
-    };
+    return settings[quality];
   };
   
   const handleExport = async () => {
@@ -233,7 +222,7 @@ export default function Giffy() {
       await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
       
       const clipDuration = trimEnd - trimStart;
-      const settings = getQualitySettings(quality, clipDuration);
+      const settings = getQualitySettings(quality);
       
       await ffmpeg.exec([
         '-ss', trimStart.toString(),
@@ -299,7 +288,6 @@ export default function Giffy() {
   
   const clipDuration = trimEnd - trimStart;
   const canExport = clipDuration > 0.5 && clipDuration <= 60;
-  const currentSettings = getQualitySettings(quality, clipDuration);
   
   // INIT State
   if (state === 'init') {
@@ -323,7 +311,7 @@ export default function Giffy() {
   }
   
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
       {/* Fixed Header */}
       <header className="header flex-shrink-0" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="container flex items-center justify-between" style={{ padding: 'var(--space-base)' }}>
@@ -345,90 +333,88 @@ export default function Giffy() {
         </div>
       </header>
       
-      {/* Scrollable Main Content */}
-      <main className="flex-1 overflow-y-auto" style={{ padding: 'var(--space-lg) 0' }}>
-        <div className="container h-full">
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center" style={{ padding: 'var(--space-lg)' }}>
+        <div className="container" style={{ maxWidth: '900px' }}>
           {/* EMPTY State */}
           {state === 'empty' && (
-            <div className="h-full flex items-center justify-center">
-              <div className="animate-popin" style={{ maxWidth: '700px', width: '100%' }}>
-                <div className="text-center mb-8">
-                  <h2 className="text-display text-gradient mb-4" style={{ lineHeight: 0.9, fontSize: 'clamp(40px, 8vw, 64px)' }}>
-                    CREATE<br/>AMAZING<br/>GIFS
-                  </h2>
-                  <p className="text-h3 text-bold" style={{ color: 'var(--color-text-secondary)' }}>
-                    FAST • SIMPLE • FREE
-                  </p>
-                </div>
-                
-                <div
-                  ref={dropZoneRef}
-                  className="drop-zone mb-8"
-                  onClick={() => fileInputRef.current?.click()}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  style={{ padding: 'var(--space-2xl) var(--space-lg)' }}
-                >
-                  <div className="icon-box icon-box-accent mx-auto mb-4 animate-bounce" style={{ width: '80px', height: '80px' }}>
-                    <div style={{ color: 'var(--color-border)' }}>
-                      <UploadIcon />
-                    </div>
-                  </div>
-                  <h3 className="text-h2 text-bold mb-3">DROP VIDEO HERE</h3>
-                  <p className="text-body mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-                    OR CLICK TO BROWSE
-                  </p>
-                  <button className="btn-primary btn-lg flex items-center gap-base mx-auto">
+            <div className="animate-popin">
+              <div className="text-center mb-8">
+                <h2 className="text-display text-gradient mb-4" style={{ lineHeight: 0.9, fontSize: 'clamp(40px, 8vw, 64px)' }}>
+                  CREATE<br/>AMAZING<br/>GIFS
+                </h2>
+                <p className="text-h3 text-bold" style={{ color: 'var(--color-text-secondary)' }}>
+                  FAST • SIMPLE • FREE
+                </p>
+              </div>
+              
+              <div
+                ref={dropZoneRef}
+                className="drop-zone mb-8"
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                style={{ padding: 'var(--space-2xl) var(--space-lg)' }}
+              >
+                <div className="icon-box icon-box-accent mx-auto mb-4 animate-bounce" style={{ width: '80px', height: '80px' }}>
+                  <div style={{ color: 'var(--color-border)' }}>
                     <UploadIcon />
-                    CHOOSE VIDEO
-                  </button>
-                  <p style={{ marginTop: 'var(--space-base)', fontSize: 'var(--font-small)', fontWeight: 600, color: 'var(--color-text-tertiary)' }}>
-                    MP4, MOV, WEBM • MAX 100 MB
+                  </div>
+                </div>
+                <h3 className="text-h2 text-bold mb-3">DROP VIDEO HERE</h3>
+                <p className="text-body mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+                  OR CLICK TO BROWSE
+                </p>
+                <button className="btn-primary btn-lg flex items-center gap-base mx-auto">
+                  <UploadIcon />
+                  CHOOSE VIDEO
+                </button>
+                <p style={{ marginTop: 'var(--space-base)', fontSize: 'var(--font-small)', fontWeight: 600, color: 'var(--color-text-tertiary)' }}>
+                  MP4, MOV, WEBM • MAX 100 MB
+                </p>
+              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+                style={{ display: 'none' }}
+              />
+              
+              <div className="grid gap-base" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
+                  <div className="text-h1 mb-2">
+                    <ZapIcon />
+                  </div>
+                  <h4 className="text-body text-bold mb-1">LIGHTNING FAST</h4>
+                  <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
+                    Browser-based processing
                   </p>
                 </div>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-                
-                <div className="grid gap-base" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                  <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
-                    <div className="text-h1 mb-2">
-                      <ZapIcon />
-                    </div>
-                    <h4 className="text-body text-bold mb-1">LIGHTNING FAST</h4>
-                    <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
-                      Browser-based processing
-                    </p>
+                <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
+                  <div className="text-h1 mb-2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
                   </div>
-                  <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
-                    <div className="text-h1 mb-2">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                      </svg>
-                    </div>
-                    <h4 className="text-body text-bold mb-1">100% PRIVATE</h4>
-                    <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
-                      Never leaves your device
-                    </p>
+                  <h4 className="text-body text-bold mb-1">100% PRIVATE</h4>
+                  <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
+                    Never leaves your device
+                  </p>
+                </div>
+                <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
+                  <div className="text-h1 mb-2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                    </svg>
                   </div>
-                  <div className="feature-card" style={{ padding: 'var(--space-base)' }}>
-                    <div className="text-h1 mb-2">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-                      </svg>
-                    </div>
-                    <h4 className="text-body text-bold mb-1">PRO QUALITY</h4>
-                    <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
-                      Optimized output
-                    </p>
-                  </div>
+                  <h4 className="text-body text-bold mb-1">PRO QUALITY</h4>
+                  <p style={{ fontSize: 'var(--font-small)', color: 'var(--color-text-secondary)' }}>
+                    Optimized output
+                  </p>
                 </div>
               </div>
             </div>
@@ -436,236 +422,240 @@ export default function Giffy() {
           
           {/* LOADED/EDITING State */}
           {(state === 'loaded' || state === 'editing') && videoUrl && (
-            <div className="h-full flex items-center justify-center">
-              <div className="animate-popin w-full" style={{ maxWidth: '900px' }}>
-                <div className="card card-glow-cyan" style={{ padding: 'var(--space-lg)' }}>
-                  {/* Video Container */}
-                  <div className="video-container mb-4" style={{ maxHeight: '50vh' }}>
-                    <video
-                      ref={videoRef}
-                      src={videoUrl}
-                      onLoadedMetadata={handleVideoLoad}
-                      onTimeUpdate={handleTimeUpdate}
-                      onClick={togglePlay}
-                      playsInline
-                      style={{ cursor: 'pointer', maxHeight: '50vh', width: '100%', objectFit: 'contain' }}
-                    />
-                  </div>
-                  
-                  {state === 'editing' && (
-                    <>
-                      {/* Controls */}
-                      <div className="flex items-center justify-center gap-base mb-4">
-                        <button onClick={() => seekTo(trimStart)} className="btn-secondary flex items-center gap-sm" style={{ padding: '12px 16px', fontSize: '14px' }}>
-                          <SkipBackIcon />
-                          START
-                        </button>
-                        <button onClick={togglePlay} className="btn-primary flex items-center justify-center" style={{ width: '56px', height: '56px', padding: 0, borderRadius: '12px' }}>
-                          {isPlaying ? <PauseIcon /> : <PlayIcon />}
-                        </button>
-                        <button onClick={() => seekTo(trimEnd)} className="btn-secondary flex items-center gap-sm" style={{ padding: '12px 16px', fontSize: '14px' }}>
-                          END
-                          <SkipForwardIcon />
-                        </button>
+            <div className="animate-popin">
+              <div className="card card-glow-cyan" style={{ padding: 'var(--space-lg)' }}>
+                {/* Video Container */}
+                <div className="video-container mb-4" style={{ maxHeight: '45vh' }}>
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    onLoadedMetadata={handleVideoLoad}
+                    onTimeUpdate={handleTimeUpdate}
+                    onClick={togglePlay}
+                    playsInline
+                    style={{ cursor: 'pointer', maxHeight: '45vh', width: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+                
+                {state === 'editing' && (
+                  <>
+                    {/* Controls */}
+                    <div className="flex items-center justify-center gap-base mb-4">
+                      <button onClick={() => seekTo(trimStart)} className="btn-secondary flex items-center gap-sm" style={{ padding: '12px 16px', fontSize: '14px' }}>
+                        <SkipBackIcon />
+                        START
+                      </button>
+                      <button onClick={togglePlay} className="btn-primary flex items-center justify-center" style={{ width: '56px', height: '56px', padding: 0, borderRadius: '12px' }}>
+                        {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                      </button>
+                      <button onClick={() => seekTo(trimEnd)} className="btn-secondary flex items-center gap-sm" style={{ padding: '12px 16px', fontSize: '14px' }}>
+                        END
+                        <SkipForwardIcon />
+                      </button>
+                    </div>
+                    
+                    <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
+                    
+                    {/* Timeline */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-body text-bold">TIMELINE</span>
+                        <span className="badge" style={{ padding: '4px 10px', fontSize: '12px' }}>{formatTime(currentTime)} / {formatTime(duration)}</span>
                       </div>
                       
-                      <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
-                      
-                      {/* Quality Selector */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-body text-bold">QUALITY</span>
-                          <span className="badge" style={{ padding: '4px 10px', fontSize: '12px' }}>
-                            {currentSettings.width}×{currentSettings.height} • {currentSettings.fps} FPS
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-base">
-                          <button
-                            onClick={() => setQuality('low')}
-                            className={quality === 'low' ? 'btn-primary' : 'btn-secondary'}
-                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
-                          >
-                            <span className="text-bold">LOW</span>
-                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
-                              ~{formatBytes(getQualitySettings('low', clipDuration).estimatedSize)}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => setQuality('medium')}
-                            className={quality === 'medium' ? 'btn-primary' : 'btn-secondary'}
-                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
-                          >
-                            <span className="text-bold">MEDIUM</span>
-                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
-                              ~{formatBytes(getQualitySettings('medium', clipDuration).estimatedSize)}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => setQuality('high')}
-                            className={quality === 'high' ? 'btn-primary' : 'btn-secondary'}
-                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
-                          >
-                            <span className="text-bold">HIGH</span>
-                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
-                              ~{formatBytes(getQualitySettings('high', clipDuration).estimatedSize)}
-                            </span>
-                          </button>
-                        </div>
+                      <div className="mb-3">
+                        <label className="text-bold" style={{ fontSize: '11px', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                          PLAYHEAD
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={duration}
+                          step={0.01}
+                          value={currentTime}
+                          onChange={(e) => seekTo(parseFloat(e.target.value))}
+                        />
                       </div>
                       
-                      <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
-                      
-                      {/* Timeline */}
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-body text-bold">TIMELINE</span>
-                          <span className="badge" style={{ padding: '4px 10px', fontSize: '12px' }}>{formatTime(currentTime)} / {formatTime(duration)}</span>
-                        </div>
-                        
-                        <div className="mb-3">
+                      <div className="grid grid-cols-2 gap-base">
+                        <div>
                           <label className="text-bold" style={{ fontSize: '11px', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
-                            PLAYHEAD
+                            START: {formatTime(trimStart)}
                           </label>
                           <input
                             type="range"
                             min={0}
                             max={duration}
-                            step={0.01}
-                            value={currentTime}
-                            onChange={(e) => seekTo(parseFloat(e.target.value))}
+                            step={0.1}
+                            value={trimStart}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (val < trimEnd) setTrimStart(val);
+                            }}
                           />
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-base mb-4">
-                          <div>
-                            <label className="text-bold" style={{ fontSize: '11px', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
-                              START: {formatTime(trimStart)}
-                            </label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={duration}
-                              step={0.1}
-                              value={trimStart}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                if (val < trimEnd) setTrimStart(val);
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-bold" style={{ fontSize: '11px', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
-                              END: {formatTime(trimEnd)}
-                            </label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={duration}
-                              step={0.1}
-                              value={trimEnd}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                if (val > trimStart) setTrimEnd(val);
-                              }}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-body text-bold">DURATION: {formatTime(clipDuration)}</span>
-                          {!canExport && (
-                            <div className="badge-error flex items-center gap-xs" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                              </svg>
-                              MAX 60 SEC
-                            </div>
-                          )}
-                          {canExport && (
-                            <button onClick={handleExport} className="btn-primary flex items-center gap-sm" style={{ padding: '12px 24px', fontSize: '14px' }}>
-                              <ZapIcon />
-                              EXPORT GIF
-                            </button>
-                          )}
+                        <div>
+                          <label className="text-bold" style={{ fontSize: '11px', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                            END: {formatTime(trimEnd)}
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={duration}
+                            step={0.1}
+                            value={trimEnd}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (val > trimStart) setTrimEnd(val);
+                            }}
+                          />
                         </div>
                       </div>
-                    </>
-                  )}
-                </div>
+                    </div>
+                    
+                    {/* Export Row with Quality Dropdown */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-body text-bold">DURATION: {formatTime(clipDuration)}</span>
+                      
+                      <div className="flex items-center gap-base">
+                        {!canExport && (
+                          <div className="badge-error flex items-center gap-xs" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="12" y1="8" x2="12" y2="12"></line>
+                              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            MAX 60 SEC
+                          </div>
+                        )}
+                        
+                        {canExport && (
+                          <div style={{ position: 'relative' }}>
+                            {/* Quality Dropdown */}
+                            {showQualityDropdown && (
+                              <div 
+                                className="card" 
+                                style={{ 
+                                  position: 'absolute', 
+                                  bottom: '100%', 
+                                  right: 0, 
+                                  marginBottom: 'var(--space-sm)',
+                                  padding: 'var(--space-sm)',
+                                  minWidth: '140px',
+                                  zIndex: 10
+                                }}
+                              >
+                                <button 
+                                  onClick={() => { setQuality('high'); setShowQualityDropdown(false); }}
+                                  className={quality === 'high' ? 'btn-primary w-full mb-2' : 'btn-secondary w-full mb-2'}
+                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                                >
+                                  HIGH
+                                </button>
+                                <button 
+                                  onClick={() => { setQuality('medium'); setShowQualityDropdown(false); }}
+                                  className={quality === 'medium' ? 'btn-primary w-full mb-2' : 'btn-secondary w-full mb-2'}
+                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                                >
+                                  MEDIUM
+                                </button>
+                                <button 
+                                  onClick={() => { setQuality('low'); setShowQualityDropdown(false); }}
+                                  className={quality === 'low' ? 'btn-primary w-full' : 'btn-secondary w-full'}
+                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                                >
+                                  LOW
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Quality Button */}
+                            <button 
+                              onClick={() => setShowQualityDropdown(!showQualityDropdown)}
+                              className="btn-secondary flex items-center gap-sm"
+                              style={{ padding: '12px 16px', fontSize: '14px' }}
+                            >
+                              {quality.toUpperCase()}
+                              <ChevronUpIcon />
+                            </button>
+                          </div>
+                        )}
+                        
+                        {canExport && (
+                          <button onClick={handleExport} className="btn-primary flex items-center gap-sm" style={{ padding: '12px 24px', fontSize: '14px' }}>
+                            <ZapIcon />
+                            EXPORT
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
           
           {/* PROCESSING State */}
           {state === 'processing' && (
-            <div className="h-full flex items-center justify-center">
-              <div className="animate-popin" style={{ maxWidth: '500px', width: '90%' }}>
-                <div className="card card-glow-pink text-center" style={{ padding: 'var(--space-xl)' }}>
-                  <div className="icon-box mx-auto mb-6 animate-wiggle">
-                    <div className="animate-spin text-white">
-                      <LoaderIcon />
-                    </div>
+            <div className="animate-popin">
+              <div className="card card-glow-pink text-center" style={{ padding: 'var(--space-xl)' }}>
+                <div className="icon-box mx-auto mb-6 animate-wiggle">
+                  <div className="animate-spin text-white">
+                    <LoaderIcon />
                   </div>
-                  <h2 className="text-h1 text-bold mb-3">CREATING YOUR GIF</h2>
-                  <p className="text-body mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-                    QUALITY: {quality.toUpperCase()}
-                  </p>
-                  <p className="text-body mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                    {currentSettings.width}×{currentSettings.height} • {currentSettings.fps} FPS
-                  </p>
-                  <div className="progress mb-4">
-                    <div className="progress-fill" style={{ width: `${conversionProgress}%` }}></div>
-                  </div>
-                  <p className="text-display text-bold">{conversionProgress}%</p>
                 </div>
+                <h2 className="text-h1 text-bold mb-3">CREATING YOUR GIF</h2>
+                <p className="text-body mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                  QUALITY: {quality.toUpperCase()}
+                </p>
+                <div className="progress mb-4">
+                  <div className="progress-fill" style={{ width: `${conversionProgress}%` }}></div>
+                </div>
+                <p className="text-display text-bold">{conversionProgress}%</p>
               </div>
             </div>
           )}
           
           {/* READY State */}
           {state === 'ready' && gifUrl && (
-            <div className="h-full flex items-center justify-center">
-              <div className="animate-popin w-full" style={{ maxWidth: '800px' }}>
-                <div className="card card-glow-pink" style={{ padding: 'var(--space-lg)' }}>
-                  <div className="text-center mb-6">
-                    <div className="badge-success flex items-center gap-xs mx-auto" style={{ display: 'inline-flex', marginBottom: 'var(--space-base)', padding: '6px 12px', fontSize: '12px' }}>
-                      <CheckIcon />
-                      READY TO DOWNLOAD
-                    </div>
-                    <h2 className="text-h1 text-gradient">YOUR GIF IS READY</h2>
+            <div className="animate-popin">
+              <div className="card card-glow-pink" style={{ padding: 'var(--space-lg)' }}>
+                <div className="text-center mb-6">
+                  <div className="badge-success flex items-center gap-xs mx-auto" style={{ display: 'inline-flex', marginBottom: 'var(--space-base)', padding: '6px 12px', fontSize: '12px' }}>
+                    <CheckIcon />
+                    READY TO DOWNLOAD
                   </div>
-                  
-                  <div className="video-container mb-6" style={{ maxHeight: '50vh' }}>
-                    <img src={gifUrl} alt="Generated GIF" style={{ maxHeight: '50vh', width: '100%', objectFit: 'contain' }} />
+                  <h2 className="text-h1 text-gradient">YOUR GIF IS READY</h2>
+                </div>
+                
+                <div className="video-container mb-6" style={{ maxHeight: '45vh' }}>
+                  <img src={gifUrl} alt="Generated GIF" style={{ maxHeight: '45vh', width: '100%', objectFit: 'contain' }} />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-base mb-6">
+                  <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
+                    <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>QUALITY</p>
+                    <p className="text-h3 text-bold">{quality.toUpperCase()}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-base mb-6">
-                    <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
-                      <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>QUALITY</p>
-                      <p className="text-h3 text-bold">{quality.toUpperCase()}</p>
-                    </div>
-                    <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
-                      <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>FILE SIZE</p>
-                      <p className="text-h3 text-bold">{gifBlob && formatBytes(gifBlob.size)}</p>
-                    </div>
-                    <div className="stat-box" style={{ background: 'linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light))', padding: 'var(--space-base)' }}>
-                      <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>DURATION</p>
-                      <p className="text-h3 text-bold">{formatTime(clipDuration)}</p>
-                    </div>
+                  <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
+                    <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>FILE SIZE</p>
+                    <p className="text-h3 text-bold">{gifBlob && formatBytes(gifBlob.size)}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-base">
-                    <button onClick={handleDownload} className="btn-primary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
-                      <DownloadIcon />
-                      DOWNLOAD
-                    </button>
-                    <button onClick={handleReset} className="btn-secondary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
-                      <PlusIcon />
-                      NEW GIF
-                    </button>
+                  <div className="stat-box" style={{ background: 'linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light))', padding: 'var(--space-base)' }}>
+                    <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>DURATION</p>
+                    <p className="text-h3 text-bold">{formatTime(clipDuration)}</p>
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-base">
+                  <button onClick={handleDownload} className="btn-primary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
+                    <DownloadIcon />
+                    DOWNLOAD
+                  </button>
+                  <button onClick={handleReset} className="btn-secondary flex items-center gap-sm justify-center" style={{ padding: '14px 20px', fontSize: '14px' }}>
+                    <PlusIcon />
+                    NEW GIF
+                  </button>
                 </div>
               </div>
             </div>
