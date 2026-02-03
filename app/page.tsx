@@ -204,9 +204,9 @@ export default function Giffy() {
   
   const getQualitySettings = (quality: Quality) => {
     const settings = {
-      low: { width: 280, fps: 8, colors: 64 },
-      medium: { width: 400, fps: 12, colors: 128 },
-      high: { width: 560, fps: 15, colors: 256 },
+      low: { width: 240, fps: 6, colors: 48 },
+      medium: { width: 320, fps: 8, colors: 96 },
+      high: { width: 420, fps: 12, colors: 128 },
     };
     return settings[quality];
   };
