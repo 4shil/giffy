@@ -5,6 +5,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 type AppState = 'init' | 'empty' | 'loaded' | 'editing' | 'processing' | 'ready';
+type Quality = 'low' | 'medium' | 'high';
 
 // Icon Components
 const PlayIcon = () => (
@@ -108,6 +109,9 @@ export default function Giffy() {
   const [conversionProgress, setConversionProgress] = useState(0);
   const [gifBlob, setGifBlob] = useState<Blob | null>(null);
   const [gifUrl, setGifUrl] = useState('');
+  const [quality, setQuality] = useState<Quality>('medium');
+  const [videoWidth, setVideoWidth] = useState(0);
+  const [videoHeight, setVideoHeight] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const ffmpegRef = useRef<FFmpeg | null>(null);
@@ -175,6 +179,8 @@ export default function Giffy() {
       const dur = videoRef.current.duration;
       setDuration(dur);
       setTrimEnd(Math.min(dur, 10));
+      setVideoWidth(videoRef.current.videoWidth);
+      setVideoHeight(videoRef.current.videoHeight);
       setState('editing');
     }
   };
@@ -193,6 +199,29 @@ export default function Giffy() {
     if (videoRef.current) videoRef.current.currentTime = time;
   };
   
+  // Calculate expected file size based on quality and video dimensions
+  const getQualitySettings = (quality: Quality, clipDuration: number) => {
+    const settings = {
+      low: { width: 320, fps: 10, colors: 128 },
+      medium: { width: 480, fps: 15, colors: 256 },
+      high: { width: 720, fps: 20, colors: 256 },
+    };
+    
+    const s = settings[quality];
+    
+    // Estimate file size: width * height * fps * duration * colors / compression_ratio
+    // Compression ratio roughly 10-15 for GIF
+    const aspectRatio = videoHeight > 0 ? videoWidth / videoHeight : 16/9;
+    const height = Math.round(s.width / aspectRatio);
+    const estimatedSize = (s.width * height * s.fps * clipDuration * s.colors) / 12;
+    
+    return {
+      ...s,
+      estimatedSize,
+      height,
+    };
+  };
+  
   const handleExport = async () => {
     if (!videoFile || !ffmpegRef.current) return;
     
@@ -204,13 +233,13 @@ export default function Giffy() {
       await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
       
       const clipDuration = trimEnd - trimStart;
-      const fps = clipDuration <= 3 ? 24 : clipDuration <= 10 ? 15 : 12;
+      const settings = getQualitySettings(quality, clipDuration);
       
       await ffmpeg.exec([
         '-ss', trimStart.toString(),
         '-t', clipDuration.toString(),
         '-i', 'input.mp4',
-        '-vf', `fps=${fps},scale=600:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer`,
+        '-vf', `fps=${settings.fps},scale=${settings.width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=${settings.colors}[p];[s1][p]paletteuse=dither=bayer`,
         '-loop', '0',
         'output.gif'
       ]);
@@ -236,7 +265,7 @@ export default function Giffy() {
     if (!gifUrl) return;
     const a = document.createElement('a');
     a.href = gifUrl;
-    a.download = `giffy-${Date.now()}.gif`;
+    a.download = `giffy-${quality}-${Date.now()}.gif`;
     a.click();
   };
   
@@ -250,6 +279,7 @@ export default function Giffy() {
     setTrimStart(0);
     setTrimEnd(0);
     setCurrentTime(0);
+    setQuality('medium');
     setState('empty');
   };
   
@@ -269,6 +299,7 @@ export default function Giffy() {
   
   const clipDuration = trimEnd - trimStart;
   const canExport = clipDuration > 0.5 && clipDuration <= 60;
+  const currentSettings = getQualitySettings(quality, clipDuration);
   
   // INIT State
   if (state === 'init') {
@@ -440,6 +471,50 @@ export default function Giffy() {
                       
                       <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
                       
+                      {/* Quality Selector */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-body text-bold">QUALITY</span>
+                          <span className="badge" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                            {currentSettings.width}×{currentSettings.height} • {currentSettings.fps} FPS
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-base">
+                          <button
+                            onClick={() => setQuality('low')}
+                            className={quality === 'low' ? 'btn-primary' : 'btn-secondary'}
+                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
+                          >
+                            <span className="text-bold">LOW</span>
+                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                              ~{formatBytes(getQualitySettings('low', clipDuration).estimatedSize)}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => setQuality('medium')}
+                            className={quality === 'medium' ? 'btn-primary' : 'btn-secondary'}
+                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
+                          >
+                            <span className="text-bold">MEDIUM</span>
+                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                              ~{formatBytes(getQualitySettings('medium', clipDuration).estimatedSize)}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => setQuality('high')}
+                            className={quality === 'high' ? 'btn-primary' : 'btn-secondary'}
+                            style={{ padding: '12px', fontSize: '12px', flexDirection: 'column', gap: '4px', height: 'auto' }}
+                          >
+                            <span className="text-bold">HIGH</span>
+                            <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                              ~{formatBytes(getQualitySettings('high', clipDuration).estimatedSize)}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
+                      
                       {/* Timeline */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
@@ -534,8 +609,11 @@ export default function Giffy() {
                     </div>
                   </div>
                   <h2 className="text-h1 text-bold mb-3">CREATING YOUR GIF</h2>
+                  <p className="text-body mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    QUALITY: {quality.toUpperCase()}
+                  </p>
                   <p className="text-body mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                    USUALLY TAKES 3-8 SECONDS
+                    {currentSettings.width}×{currentSettings.height} • {currentSettings.fps} FPS
                   </p>
                   <div className="progress mb-4">
                     <div className="progress-fill" style={{ width: `${conversionProgress}%` }}></div>
@@ -563,14 +641,18 @@ export default function Giffy() {
                     <img src={gifUrl} alt="Generated GIF" style={{ maxHeight: '50vh', width: '100%', objectFit: 'contain' }} />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-base mb-6">
+                  <div className="grid grid-cols-3 gap-base mb-6">
+                    <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
+                      <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>QUALITY</p>
+                      <p className="text-h3 text-bold">{quality.toUpperCase()}</p>
+                    </div>
                     <div className="stat-box" style={{ padding: 'var(--space-base)' }}>
                       <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>FILE SIZE</p>
-                      <p className="text-h2 text-bold">{gifBlob && formatBytes(gifBlob.size)}</p>
+                      <p className="text-h3 text-bold">{gifBlob && formatBytes(gifBlob.size)}</p>
                     </div>
                     <div className="stat-box" style={{ background: 'linear-gradient(135deg, var(--color-secondary), var(--color-secondary-light))', padding: 'var(--space-base)' }}>
                       <p className="text-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>DURATION</p>
-                      <p className="text-h2 text-bold">{formatTime(clipDuration)}</p>
+                      <p className="text-h3 text-bold">{formatTime(clipDuration)}</p>
                     </div>
                   </div>
                   
