@@ -116,7 +116,6 @@ export default function Giffy() {
   const [gifBlob, setGifBlob] = useState<Blob | null>(null);
   const [gifUrl, setGifUrl] = useState('');
   const [quality, setQuality] = useState<Quality>('medium');
-  const [showQualityDropdown, setShowQualityDropdown] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const ffmpegRef = useRef<FFmpeg | null>(null);
@@ -211,6 +210,16 @@ export default function Giffy() {
     return settings[quality];
   };
   
+  // Estimate file size based on quality and duration
+  const estimateFileSize = (quality: Quality, duration: number) => {
+    const bytesPerSecond = {
+      low: 200000,    // ~200 KB/s
+      medium: 500000, // ~500 KB/s  
+      high: 800000    // ~800 KB/s
+    };
+    return duration * bytesPerSecond[quality];
+  };
+  
   const handleExport = async () => {
     if (!videoFile || !ffmpegRef.current) return;
     
@@ -289,6 +298,8 @@ export default function Giffy() {
   
   const clipDuration = trimEnd - trimStart;
   const canExport = clipDuration > 0.5 && clipDuration <= 60;
+  const currentSettings = getQualitySettings(quality);
+  const estimatedSize = estimateFileSize(quality, clipDuration);
   
   // INIT State
   if (state === 'init') {
@@ -457,6 +468,122 @@ export default function Giffy() {
                     
                     <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
                     
+                    {/* Quality Selector - Radio Buttons */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-body text-bold">QUALITY</span>
+                      </div>
+                      
+                      <div className="quality-radio-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-base)' }}>
+                        <label 
+                          className={quality === 'low' ? 'quality-option quality-option-active' : 'quality-option'}
+                          style={{ 
+                            padding: 'var(--space-base)',
+                            border: 'var(--border-thick) solid var(--color-border)',
+                            background: quality === 'low' ? 'var(--color-primary)' : 'var(--color-surface)',
+                            color: quality === 'low' ? 'white' : 'var(--color-text-primary)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all var(--duration-fast) var(--ease-smooth)',
+                            boxShadow: quality === 'low' ? 'var(--shadow-brutal-md)' : 'var(--shadow-brutal-sm)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--space-xs)'
+                          }}
+                        >
+                          <input 
+                            type="radio" 
+                            name="quality" 
+                            value="low" 
+                            checked={quality === 'low'}
+                            onChange={() => setQuality('low')}
+                            style={{ display: 'none' }}
+                          />
+                          <span style={{ fontSize: 'var(--font-body)', fontWeight: 800, letterSpacing: '0.5px' }}>LOW</span>
+                          <span style={{ fontSize: 'var(--font-small)', opacity: 0.9 }}>240p • 6fps</span>
+                          <span style={{ fontSize: 'var(--font-small)', fontWeight: 700 }}>~{formatBytes(estimateFileSize('low', clipDuration))}</span>
+                        </label>
+                        
+                        <label 
+                          className={quality === 'medium' ? 'quality-option quality-option-active' : 'quality-option'}
+                          style={{ 
+                            padding: 'var(--space-base)',
+                            border: 'var(--border-thick) solid var(--color-border)',
+                            background: quality === 'medium' ? 'var(--color-primary)' : 'var(--color-surface)',
+                            color: quality === 'medium' ? 'white' : 'var(--color-text-primary)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all var(--duration-fast) var(--ease-smooth)',
+                            boxShadow: quality === 'medium' ? 'var(--shadow-brutal-md)' : 'var(--shadow-brutal-sm)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--space-xs)'
+                          }}
+                        >
+                          <input 
+                            type="radio" 
+                            name="quality" 
+                            value="medium" 
+                            checked={quality === 'medium'}
+                            onChange={() => setQuality('medium')}
+                            style={{ display: 'none' }}
+                          />
+                          <span style={{ fontSize: 'var(--font-body)', fontWeight: 800, letterSpacing: '0.5px' }}>MEDIUM</span>
+                          <span style={{ fontSize: 'var(--font-small)', opacity: 0.9 }}>320p • 8fps</span>
+                          <span style={{ fontSize: 'var(--font-small)', fontWeight: 700 }}>~{formatBytes(estimateFileSize('medium', clipDuration))}</span>
+                        </label>
+                        
+                        <label 
+                          className={quality === 'high' ? 'quality-option quality-option-active' : 'quality-option'}
+                          style={{ 
+                            padding: 'var(--space-base)',
+                            border: 'var(--border-thick) solid var(--color-border)',
+                            background: quality === 'high' ? 'var(--color-primary)' : 'var(--color-surface)',
+                            color: quality === 'high' ? 'white' : 'var(--color-text-primary)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all var(--duration-fast) var(--ease-smooth)',
+                            boxShadow: quality === 'high' ? 'var(--shadow-brutal-md)' : 'var(--shadow-brutal-sm)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--space-xs)'
+                          }}
+                        >
+                          <input 
+                            type="radio" 
+                            name="quality" 
+                            value="high" 
+                            checked={quality === 'high'}
+                            onChange={() => setQuality('high')}
+                            style={{ display: 'none' }}
+                          />
+                          <span style={{ fontSize: 'var(--font-body)', fontWeight: 800, letterSpacing: '0.5px' }}>HIGH</span>
+                          <span style={{ fontSize: 'var(--font-small)', opacity: 0.9 }}>420p • 12fps</span>
+                          <span style={{ fontSize: 'var(--font-small)', fontWeight: 700 }}>~{formatBytes(estimateFileSize('high', clipDuration))}</span>
+                        </label>
+                      </div>
+                      
+                      {/* Output Preview Card */}
+                      <div className="card" style={{ marginTop: 'var(--space-base)', padding: 'var(--space-base)', background: 'linear-gradient(135deg, #FFF9E5 0%, #FFE5EC 100%)' }}>
+                        <div className="grid grid-cols-3 gap-base text-center">
+                          <div>
+                            <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px', color: 'var(--color-text-secondary)' }}>DURATION</p>
+                            <p className="text-bold" style={{ fontSize: 'var(--font-body)' }}>{formatTime(clipDuration)}</p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px', color: 'var(--color-text-secondary)' }}>SIZE</p>
+                            <p className="text-bold" style={{ fontSize: 'var(--font-body)' }}>~{formatBytes(estimatedSize)}</p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px', color: 'var(--color-text-secondary)' }}>RESOLUTION</p>
+                            <p className="text-bold" style={{ fontSize: 'var(--font-body)' }}>{currentSettings.width}p</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="divider" style={{ margin: 'var(--space-base) 0' }}></div>
+                    
                     {/* Timeline */}
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-3">
@@ -514,81 +641,23 @@ export default function Giffy() {
                       </div>
                     </div>
                     
-                    {/* Export Row with Quality Dropdown */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-body text-bold">DURATION: {formatTime(clipDuration)}</span>
-                      
-                      <div className="flex items-center gap-base">
-                        {!canExport && (
-                          <div className="badge-error flex items-center gap-xs" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <line x1="12" y1="8" x2="12" y2="12"></line>
-                              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            MAX 60 SEC
-                          </div>
-                        )}
-                        
-                        {canExport && (
-                          <div style={{ position: 'relative' }}>
-                            {/* Quality Dropdown */}
-                            {showQualityDropdown && (
-                              <div 
-                                className="card" 
-                                style={{ 
-                                  position: 'absolute', 
-                                  bottom: '100%', 
-                                  right: 0, 
-                                  marginBottom: 'var(--space-sm)',
-                                  padding: 'var(--space-sm)',
-                                  minWidth: '140px',
-                                  zIndex: 10
-                                }}
-                              >
-                                <button 
-                                  onClick={() => { setQuality('high'); setShowQualityDropdown(false); }}
-                                  className={quality === 'high' ? 'btn-primary w-full mb-2' : 'btn-secondary w-full mb-2'}
-                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
-                                >
-                                  HIGH
-                                </button>
-                                <button 
-                                  onClick={() => { setQuality('medium'); setShowQualityDropdown(false); }}
-                                  className={quality === 'medium' ? 'btn-primary w-full mb-2' : 'btn-secondary w-full mb-2'}
-                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
-                                >
-                                  MEDIUM
-                                </button>
-                                <button 
-                                  onClick={() => { setQuality('low'); setShowQualityDropdown(false); }}
-                                  className={quality === 'low' ? 'btn-primary w-full' : 'btn-secondary w-full'}
-                                  style={{ padding: '8px 12px', fontSize: '13px', justifyContent: 'flex-start' }}
-                                >
-                                  LOW
-                                </button>
-                              </div>
-                            )}
-                            
-                            {/* Quality Button */}
-                            <button 
-                              onClick={() => setShowQualityDropdown(!showQualityDropdown)}
-                              className="btn-secondary flex items-center gap-sm"
-                              style={{ padding: '12px 16px', fontSize: '14px' }}
-                            >
-                              {quality.toUpperCase()}
-                              <ChevronUpIcon />
-                            </button>
-                          </div>
-                        )}
-                        
-                        {canExport && (
-                          <button onClick={handleExport} className="btn-primary flex items-center gap-sm" style={{ padding: '12px 24px', fontSize: '14px' }}>
-                            <ZapIcon />
-                            EXPORT
-                          </button>
-                        )}
-                      </div>
+                    {/* Export Button */}
+                    <div>
+                      {!canExport ? (
+                        <div className="badge-error flex items-center gap-xs mx-auto" style={{ padding: '10px 16px', fontSize: '14px', display: 'inline-flex' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                          </svg>
+                          CLIP MUST BE 0.5-60 SECONDS
+                        </div>
+                      ) : (
+                        <button onClick={handleExport} className="btn-primary w-full flex items-center gap-sm justify-center" style={{ padding: '16px 28px', fontSize: '16px' }}>
+                          <ZapIcon />
+                          EXPORT GIF
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
